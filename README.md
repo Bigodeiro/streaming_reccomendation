@@ -23,13 +23,22 @@ O sistema é uma página web em que o usuário:
 
 ### Funcionalidades (histórias de usuário)
 
-| Código | Funcionalidade |
-|--------|----------------|
-| H1 | Autenticação de usuário |
-| H2 | Marcar mídia como favorita [Sprint1] |
-| H3 | Recomendação com base nos favoritos |
-| H4 | Marcar mídia para a watchlist |
-| H5 | Gerar recomendação com base na watchlist |
+| Código | Funcionalidade | Prioridade |
+|--------|----------------|------------|
+| H1 | Autenticação de usuário (cadastro e login) | Média |
+| H2 | Marcar mídia como favorita | Alta |
+| H3 | Recomendação com base nos favoritos | Alta |
+| H4 | Marcar mídia para a watchlist | Alta |
+| H5 | Recomendação com base na watchlist | Média |
+| H6 | Buscar filmes por título | Alta |
+| H7 | Ver planos e preços dos streamings recomendados | Alta |
+| H8 | Ver minhas listas (favoritos e watchlist) | Média |
+| H9 | Remover filme dos favoritos ou da watchlist | Média |
+| H10 | Ver detalhes de um filme | Média |
+| H11 | Administrador: cadastrar e atualizar streamings e planos | Média |
+| H12 | Filtrar recomendações por faixa de preço | Baixa |
+| H13 | Comparar planos de streamings | Baixa |
+| H14 | Editar perfil e recuperar senha | Baixa |
 
 ## Tecnologias
 
