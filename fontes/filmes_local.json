@@ -1,0 +1,15 @@
+[
+  {"id": 1, "titulo": "Matrix", "ano": 1999, "generos": ["Ficção científica", "Ação"], "streamings": ["Max", "Prime Video"]},
+  {"id": 2, "titulo": "Interestelar", "ano": 2014, "generos": ["Ficção científica", "Drama"], "streamings": ["Netflix", "Prime Video"]},
+  {"id": 3, "titulo": "A Origem", "ano": 2010, "generos": ["Ficção científica", "Ação"], "streamings": ["Netflix", "Max"]},
+  {"id": 4, "titulo": "O Poderoso Chefão", "ano": 1972, "generos": ["Crime", "Drama"], "streamings": ["Prime Video"]},
+  {"id": 5, "titulo": "Cidade de Deus", "ano": 2002, "generos": ["Crime", "Drama"], "streamings": ["Netflix", "Globoplay"]},
+  {"id": 6, "titulo": "Parasita", "ano": 2019, "generos": ["Suspense", "Drama"], "streamings": ["Max"]},
+  {"id": 7, "titulo": "Pulp Fiction", "ano": 1994, "generos": ["Crime"], "streamings": ["Prime Video", "Netflix"]},
+  {"id": 8, "titulo": "Toy Story", "ano": 1995, "generos": ["Animação", "Aventura"], "streamings": ["Disney+"]},
+  {"id": 9, "titulo": "A Viagem de Chihiro", "ano": 2001, "generos": ["Animação", "Fantasia"], "streamings": ["Max", "Netflix"]},
+  {"id": 10, "titulo": "Clube da Luta", "ano": 1999, "generos": ["Drama"], "streamings": ["Disney+", "Prime Video"]},
+  {"id": 11, "titulo": "O Senhor dos Anéis: A Sociedade do Anel", "ano": 2001, "generos": ["Fantasia", "Aventura"], "streamings": ["Max", "Prime Video"]},
+  {"id": 12, "titulo": "Forrest Gump", "ano": 1994, "generos": ["Drama", "Romance"], "streamings": ["Netflix", "Globoplay"]},
+  {"id": 13, "titulo": "Central do Brasil", "ano": 1998, "generos": ["Drama"], "streamings": ["Globoplay"]}
+]
