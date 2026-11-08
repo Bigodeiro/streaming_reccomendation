@@ -14,5 +14,3 @@ def test_user_inicial():
     print(f"Usuario demo garantido: id={usuario_id}, nome={usuario_nome}")
     assert usuario_id is not None, "None returned for usuario_id"
     assert usuario_nome is not None, "None returned for usuario_nome"
-
-test_user_inicial()
