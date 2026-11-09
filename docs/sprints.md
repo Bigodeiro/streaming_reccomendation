@@ -17,10 +17,10 @@ Links corretos para os milestones serão atualizados ainda.
 
 | Sprint | Início | Fim | Objetivo | Milestone |
 |--------|--------|-----|----------|-----------|
-| 1 | 22/10/2026 | 04/11/2026 | Usuário consegue buscar filmes, marcar como favoritos, ver a lista de favoritos e remover filmes dela | [Sprint 1](https://github.com/Bigodeiro/streaming_reccomendation/milestone/1) |
-| 2 | 05/11/2026 | 18/11/2026 | Usuário recebe recomendação de streamings com base nos seus favoritos e consulta os planos e preços de cada um | [Sprint 2](https://github.com/Bigodeiro/streaming_reccomendation/milestone/2) |
-| 3 | 19/11/2026 | 02/12/2026 | Usuário consegue criar conta e fazer login, adicionar filmes à watchlist e receber recomendações também com base nela | [Sprint 3](https://github.com/Bigodeiro/streaming_reccomendation/milestone/3) |
-| 4 | 03/12/2026 | 16/12/2026 | Testes, correções e apresentação | [Sprint 4](https://github.com/Bigodeiro/streaming_reccomendation/milestone/4) |
+| 1 | 22/10/2026 | 04/11/2026 | Usuário consegue buscar filmes, marcar como favoritos, ver a lista de favoritos e remover filmes dela | [Sprint 1](https://github.com/Bigodeiro/streaming_reccomendation/milestone/2) |
+| 2 | 05/11/2026 | 18/11/2026 | Usuário recebe recomendação de streamings com base nos seus favoritos e consulta os planos e preços de cada um | [Sprint 2](https://github.com/Bigodeiro/streaming_reccomendation/milestone/3) |
+| 3 | 19/11/2026 | 02/12/2026 | Usuário consegue criar conta e fazer login, adicionar filmes à watchlist e receber recomendações também com base nela | [Sprint 3](https://github.com/Bigodeiro/streaming_reccomendation/milestone/4) |
+| 4 | 03/12/2026 | 16/12/2026 | Testes, correções e apresentação | [Sprint 4](https://github.com/Bigodeiro/streaming_reccomendation/milestone/5) |
 
 Todos os milestones: <https://github.com/Bigodeiro/streaming_reccomendation/milestones>
 
