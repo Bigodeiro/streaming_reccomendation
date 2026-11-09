@@ -5,10 +5,10 @@
 # - Corpo (Body): quem faz o trabalho de verdade. Pode ser trocado sem que
 #   quem usa o Handle perceba.
 
-from blalblabla import algo
+from abc import ABC
 
 
-class Corpo(algo):
+class Corpo(ABC):
     """Body: classe base de todas as implementações reais."""
 
 
