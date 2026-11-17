@@ -2,6 +2,7 @@ import streamlit as st
 
 from models.filme import Filme
 from servicos.busca_servico import buscar_filmes, onde_assistir
+from servicos.favoritos_servico import eh_favorito, marcar_favorito, remover_favorito
 
 
 def renderizar() -> None:
@@ -43,5 +44,21 @@ def _mostrar_resultado(filme: Filme) -> None:
         else:
             st.write("**Onde assistir:** não disponível nos streamings cadastrados")
 
-        # TODO (Sprint 1, H2.4 / issue #14): botão "Favoritar" aqui.
+        usuario_id = st.session_state["usuario_id"][0]
+        if eh_favorito(usuario_id, filme.id):
+            if st.button(
+                "Remover dos favoritos",
+                key=f"busca_remover_fav_{filme.id}",
+                icon=":material/favorite:",
+            ):
+                remover_favorito(usuario_id, filme.id)
+                st.rerun()
+        elif st.button(
+            "Favoritar",
+            key=f"busca_favoritar_{filme.id}",
+            icon=":material/favorite_border:",
+        ):
+            marcar_favorito(usuario_id, filme.id)
+            st.rerun()
+
         # TODO (Sprint 3, H4.2): botão "Quero ver" (watchlist).
