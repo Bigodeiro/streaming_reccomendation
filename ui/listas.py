@@ -1,46 +1,47 @@
+"""Minhas listas (H8/H9, DESIGN.md 5.3). A watchlist entra na Sprint 3."""
+
 import streamlit as st
 
-from servicos.busca_servico import onde_assistir
+from models.filme import Filme
 from servicos.favoritos_servico import listar_favoritos, remover_favorito
+from ui.componentes import botao_buscar_filmes, cartao_filme
+from ui.identidade import cabecalho, estado_vazio, rodape, titulo_pagina
 
 
 def renderizar() -> None:
-    st.header("Minhas listas")
-    usuario_id = st.session_state["usuario_id"][0]
+    cabecalho(compacto=True)
+    titulo_pagina("Minhas listas", "Filmes salvos para consultar depois")
 
-    st.subheader("Favoritos")
+    usuario_id = st.session_state["usuario_id"][0]
     filmes = listar_favoritos(usuario_id)
 
     if not filmes:
-        st.info(
-            "Você ainda não tem favoritos. Busque um filme e clique em "
-            "**Favoritar** para vê-lo aqui."
-        )
+        with st.container(border=True):
+            estado_vazio(
+                "favorite_border",
+                "Sua lista está vazia",
+                "Busque um título e favorite-o para encontrá-lo aqui depois.",
+            )
+            botao_buscar_filmes("listas_buscar_filmes")
     else:
         quantidade = len(filmes)
         sufixo = "s" if quantidade > 1 else ""
-        st.caption(f"{quantidade} filme{sufixo} favorito{sufixo}.")
+        st.caption(f"Favoritos · {quantidade} filme{sufixo}")
 
         for filme in filmes:
-            with st.container(border=True):
-                titulo = f"{filme.titulo} ({filme.ano})" if filme.ano else filme.titulo
-                st.subheader(titulo)
-
-                if filme.generos:
-                    st.write("**Gêneros:** " + ", ".join(filme.generos))
-
-                streamings = onde_assistir(filme.id)
-                if streamings:
-                    st.write("**Onde assistir:** " + ", ".join(streamings))
-                else:
-                    st.write("**Onde assistir:** não disponível nos streamings cadastrados")
-
-                if st.button(
-                    "Remover dos favoritos",
-                    key=f"lista_remover_fav_{filme.id}",
-                    icon=":material/delete:",
-                ):
-                    remover_favorito(usuario_id, filme.id)
-                    st.rerun()
+            cartao_filme(filme, "listas", acoes=lambda f=filme: _botao_remover(usuario_id, f))
 
     # TODO (Sprint 3, H4.3): lista da watchlist.
+    rodape()
+
+
+def _botao_remover(usuario_id: int, filme: Filme) -> None:
+    if st.button(
+        "Remover",
+        key=f"lista_remover_fav_{filme.id}",
+        icon=":material/delete:",
+        type="tertiary",
+        help="Remover dos favoritos",
+    ):
+        remover_favorito(usuario_id, filme.id)
+        st.rerun()
