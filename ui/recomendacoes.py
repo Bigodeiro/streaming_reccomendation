@@ -1,24 +1,25 @@
 """Tela de recomendações com planos e preços (H3.5 / H7, DESIGN.md 4.7, 4.8 e 5.4).
 
-A tela só exibe o que o serviço devolve (lista de StreamingRecomendado já ordenada).
-Enquanto a H3.3/H3.4 não chegam, usa o recomendador provisório de exemplo.
+A tela só exibe o ranking que a lógica da H3.4 devolve (lista de StreamingRecomendado
+já ordenada) e os planos de cada streaming. Não recalcula nada.
 """
 
 from html import escape
 
 import streamlit as st
 
+from models.contexto_recomendacao import StreamingRecomendado
 from models.plano import Plano
-from models.recomendacao import StreamingRecomendado
 from servicos.favoritos_servico import listar_favoritos
 
-# TODO (integração H3.3/H3.4): trocar pelo serviço real e pôr USANDO_DADOS_DE_EXEMPLO = False.
-from servicos.recomendacao_exemplo import recomendar_exemplo as recomendar
-from ui.componentes import botao_buscar_filmes, formatar_afinidade, formatar_preco
+# TODO (integração H3.3/H3.1): trocar pela versão definitiva e pôr PLANOS_DE_EXEMPLO = False.
+from servicos.recomendacao_provisoria import planos_do_streaming, recomendar
+from ui.componentes import botao_buscar_filmes, formatar_pontuacao, formatar_preco
 from ui.identidade import cabecalho, estado_vazio, rodape, titulo_pagina
 
-USANDO_DADOS_DE_EXEMPLO = True
+PLANOS_DE_EXEMPLO = True
 CHAVE_RESULTADO = "recomendacao"
+MAX_FILMES_SUGERIDOS = 5
 
 
 def renderizar() -> None:
@@ -40,10 +41,9 @@ def renderizar() -> None:
         rodape()
         return
 
-    if USANDO_DADOS_DE_EXEMPLO:
+    if PLANOS_DE_EXEMPLO:
         st.warning(
-            "Pré-visualização: o ranking considera só quantos dos seus favoritos estão em cada "
-            "serviço, e os planos e preços são fictícios. Os dados reais chegam com a H3.1 e a H3.4.",
+            "Os planos e preços abaixo são fictícios. Os valores reais chegam com a H3.1.",
             icon=":material/construction:",
         )
 
@@ -81,36 +81,45 @@ def renderizar() -> None:
 def _mostrar_ranking(recomendados: list[StreamingRecomendado]) -> None:
     if not recomendados:
         st.info(
-            "Nenhum dos serviços cadastrados tem seus favoritos no catálogo. "
-            "Favorite outros filmes e tente de novo.",
+            "Não encontramos filmes parecidos com seus favoritos nos serviços cadastrados. "
+            "Favorite filmes de outros gêneros e tente de novo.",
             icon=":material/search_off:",
         )
         return
 
-    st.html('<p class="qs-results-caption">Ordenados pela afinidade estimada com seus favoritos.</p>')
+    st.html(
+        '<p class="qs-results-caption">Ordenados pela pontuação de afinidade: cada filme que você '
+        "ainda não favoritou soma pontos quando tem gêneros dos seus favoritos.</p>"
+    )
     for posicao, item in enumerate(recomendados, 1):
         with st.container(border=True, key=f"qs-card-rank-{posicao}"):
-            st.html(_html_item(posicao, item))
+            st.html(_html_item(posicao, item, planos_do_streaming(item.nome)))
 
 
-def _html_item(posicao: int, item: StreamingRecomendado) -> str:
-    titulos = ", ".join(escape(f.titulo) for f in item.filmes_em_comum)
-    favoritos = (
-        f'<p class="qs-rank-favs">Seus favoritos neste serviço: {titulos}</p>' if titulos else ""
-    )
-    return (
-        '<div class="qs-rank">'
-        '<div class="qs-rank-head">'
-        f'<span class="qs-rank-pos" aria-label="Posição {posicao}">{posicao}º</span>'
-        f'<span class="qs-rank-nome">{escape(item.streaming)}</span>'
-        f'<span class="qs-afinidade"><strong>{formatar_afinidade(item.afinidade)}</strong>'
-        "<span>afinidade estimada</span></span>"
-        "</div>"
-        f"{favoritos}"
-        '<div class="qs-rotulo">Planos</div>'
-        f"{_html_planos(item.planos)}"
-        "</div>"
-    )
+def _html_item(posicao: int, item: StreamingRecomendado, planos: list[Plano]) -> str:
+    partes = [
+        '<div class="qs-rank"><div class="qs-rank-head">',
+        f'<span class="qs-rank-pos" aria-label="Posição {posicao}">{posicao}º</span>',
+        f'<span class="qs-rank-nome">{escape(item.nome)}</span>',
+        f'<span class="qs-afinidade"><strong>{formatar_pontuacao(item.pontuacao)}</strong>'
+        "<span>pontos de afinidade</span></span>",
+        "</div>",
+    ]
+
+    if item.generos_principais:
+        generos = ", ".join(escape(g) for g in item.generos_principais)
+        partes.append(f'<p class="qs-rank-favs">Combina com: {generos}</p>')
+
+    if item.filmes_compativeis:
+        sugeridos = [escape(t) for t in item.filmes_compativeis[:MAX_FILMES_SUGERIDOS]]
+        restantes = len(item.filmes_compativeis) - len(sugeridos)
+        extra = f" e mais {restantes}" if restantes > 0 else ""
+        partes.append(f'<p class="qs-rank-favs">Você pode gostar: {", ".join(sugeridos)}{extra}</p>')
+
+    partes.append('<div class="qs-rotulo">Planos</div>')
+    partes.append(_html_planos(planos))
+    partes.append("</div>")
+    return "".join(partes)
 
 
 def _html_planos(planos: list[Plano]) -> str:

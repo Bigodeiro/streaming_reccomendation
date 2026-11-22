@@ -57,6 +57,6 @@ def formatar_preco(valor: float) -> str:
     return f"R$ {texto}"
 
 
-def formatar_afinidade(afinidade: float) -> str:
-    """0.756 -> '76%'."""
-    return f"{round(afinidade * 100)}%"
+def formatar_pontuacao(pontuacao: float) -> str:
+    """2.0 -> '2,0'. A pontuação da H3.4 é uma soma de pontos, não uma porcentagem."""
+    return f"{pontuacao:.1f}".replace(".", ",")
