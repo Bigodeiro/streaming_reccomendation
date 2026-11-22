@@ -1,0 +1,19 @@
+# Identidade visual do app (tema do Streamlit).
+# Tokens de docs/DESIGN.md (seção 3.1); as mesmas cores estão como variáveis --qs-* em ui/identidade.py.
+
+[theme]
+base = "dark"
+primaryColor = "#E50914"
+backgroundColor = "#0B0B0D"
+secondaryBackgroundColor = "#18181C"
+textColor = "#F5F5F1"
+borderColor = "#2A2A30"
+baseRadius = "0.75rem"
+font = "sans serif"
+
+[client]
+toolbarMode = "minimal"
+
+[theme.sidebar]
+backgroundColor = "#18181C"
+secondaryBackgroundColor = "#202025"
