@@ -6,7 +6,7 @@ from html import escape
 import streamlit as st
 
 from models.filme import Filme
-from servicos.busca_servico import onde_assistir
+from servicos.busca_servico import streamings_do_filme
 from ui.identidade import chips_generos, chips_streamings
 
 
@@ -28,7 +28,7 @@ def cartao_filme(filme: Filme, contexto: str, acoes: Callable[[], None] | None =
                     f'<div class="qs-chips" style="margin-top:0.5rem">{chips_generos(filme.generos)}</div>'
                 )
 
-            streamings = onde_assistir(filme.id)
+            streamings = streamings_do_filme(filme.id)
             partes.append('<div class="qs-rotulo">Onde assistir</div>')
             if streamings:
                 partes.append(f'<div class="qs-chips">{chips_streamings(streamings)}</div>')

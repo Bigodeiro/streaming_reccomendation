@@ -3,6 +3,7 @@ import unicodedata
 from pathlib import Path
 
 from fontes.corpo_fonte import CorpoFonte
+from fontes.streamings import normalizar_streamings
 from models.filme import Filme
 
 CAMINHO_PADRAO = Path(__file__).parent / "filmes_local.json"
@@ -20,7 +21,9 @@ class FonteLocal(CorpoFonte):
 
     def __init__(self, caminho: Path = CAMINHO_PADRAO):
         with open(caminho, encoding="utf-8") as arquivo:
-            self._registros = json.load(arquivo)
+            dados = json.load(arquivo)
+        # Formato novo: {"filmes": [...]}. O formato antigo (lista) ainda é aceito.
+        self._registros = dados.get("filmes", []) if isinstance(dados, dict) else dados
 
     def buscar_por_titulo(self, titulo: str) -> list[Filme]:
         termo = _normalizar(titulo)
@@ -34,9 +37,11 @@ class FonteLocal(CorpoFonte):
         registro = self._achar(filme_id)
         return self._para_filme(registro) if registro else None
 
-    def onde_assistir(self, filme_id: int) -> list[str]:
+    def streamings_do_filme(self, filme_id: int) -> list[str]:
         registro = self._achar(filme_id)
-        return list(registro.get("streamings", [])) if registro else []
+        if not registro:
+            return []
+        return normalizar_streamings(registro.get("streamings", []))
 
     def listar_filmes(self) -> list[Filme]:
         return [self._para_filme(registro) for registro in self._registros]

@@ -1,3 +1,4 @@
+import json
 import sys
 from pathlib import Path
 
@@ -7,6 +8,8 @@ from streamlit.testing.v1 import AppTest
 
 from dados.carga_inicial import garantir_usuario_demo
 from dados.conexao import inicializar_banco
+from fontes.fonte_de_filmes import FonteDeFilmes
+from fontes.fonte_local import FonteLocal
 from models.contexto_recomendacao import MIN_FAVORITOS
 from servicos.favoritos_servico import marcar_favorito
 from servicos.recomendacao_servico import planos_do_streaming, recomendar
@@ -20,6 +23,49 @@ def _banco_de_teste(tmp_path: Path) -> tuple[int, Path]:
     return usuario_id, caminho
 
 
+def _catalogo_de_teste():
+    return {
+        "filmes": [
+            {
+                "id": 1,
+                "titulo": "The Godfather",
+                "ano": 1972,
+                "generos": ["Crime", "Drama"],
+                "streamings": ["Paramount+"],
+            },
+            {
+                "id": 2,
+                "titulo": "The Dark Knight",
+                "ano": 2008,
+                "generos": ["Crime", "Thriller"],
+                "streamings": ["Prime Video", "Max"],
+            },
+            {
+                "id": 3,
+                "titulo": "The Dark Knight Rises",
+                "ano": 2012,
+                "generos": ["Crime", "Thriller"],
+                "streamings": ["Prime Video"],
+            },
+            {
+                "id": 4,
+                "titulo": "Batman Begins",
+                "ano": 2005,
+                "generos": ["Crime"],
+                "streamings": ["Max"],
+            },
+        ]
+    }
+
+
+def _usar_catalogo_de_teste(servico, monkeypatch, tmp_path):
+    caminho = tmp_path / "catalogo.json"
+    caminho.write_text(json.dumps(_catalogo_de_teste()), encoding="utf-8")
+    monkeypatch.setattr(
+        servico, "criar_fonte_de_filmes", lambda: FonteDeFilmes(FonteLocal(caminho))
+    )
+
+
 # --- Serviço de recomendação ---
 
 def test_menos_de_tres_favoritos_nao_recomenda(tmp_path):
@@ -29,22 +75,26 @@ def test_menos_de_tres_favoritos_nao_recomenda(tmp_path):
     assert recomendar(usuario_id, caminho) == []
 
 
-def test_recomenda_com_o_catalogo_real_e_a_regra_do_genero_favorito(tmp_path):
+def test_recomenda_com_o_catalogo_da_fonte_e_a_regra_do_genero_favorito(tmp_path, monkeypatch):
+    import servicos.recomendacao_servico as servico
+
     usuario_id, caminho = _banco_de_teste(tmp_path)
-    # Matrix, Interestelar e A Origem: Ficção científica é o gênero mais frequente.
+    # Os três favoritos têm "Crime": a fonte informa 2 filmes do gênero na
+    # Prime Video e na Max, e 1 na Paramount+.
     for filme_id in (1, 2, 3):
         marcar_favorito(usuario_id, filme_id, caminho)
+    _usar_catalogo_de_teste(servico, monkeypatch, tmp_path)
 
-    ranking = recomendar(usuario_id, caminho)
+    ranking = servico.recomendar(usuario_id, caminho)
 
-    assert ranking
-    pontuacoes = [r.pontuacao for r in ranking]
-    assert pontuacoes == sorted(pontuacoes, reverse=True)
-    assert ranking[0].nome == "Max"
-    assert ranking[0].generos_principais == ["Ficção científica"]
-    # Cada um dos três streamings tem 2 filmes do gênero no catálogo de exemplo.
-    assert pontuacoes == [2.0, 2.0, 2.0]
-    assert "A Origem" in ranking[0].filmes_compativeis
+    assert [(item.nome, item.pontuacao) for item in ranking] == [
+        ("Prime Video", 2.0),
+        ("Max", 2.0),
+        ("Paramount+", 1.0),
+    ]
+    assert ranking[0].generos_principais == ["Crime"]
+    assert "The Dark Knight" in ranking[0].filmes_compativeis
+    assert "Batman Begins" not in ranking[0].filmes_compativeis
 
 
 def test_servico_monta_contexto_e_chama_a_factory(tmp_path, monkeypatch):
@@ -54,13 +104,14 @@ def test_servico_monta_contexto_e_chama_a_factory(tmp_path, monkeypatch):
     usuario_id, caminho = _banco_de_teste(tmp_path)
     for filme_id in (1, 2, 3):
         marcar_favorito(usuario_id, filme_id, caminho)
+    _usar_catalogo_de_teste(servico, monkeypatch, tmp_path)
 
     capturado = {}
 
     class RecomendadorFalso:
         def recomendar(self, contexto):
             capturado["contexto"] = contexto
-            return [StreamingRecomendado(nome="Max", pontuacao=2.0)]
+            return [StreamingRecomendado(nome="Prime Video", pontuacao=2.0)]
 
     def criar_recomendador_falso(tipo):
         capturado["tipo"] = tipo
@@ -68,14 +119,15 @@ def test_servico_monta_contexto_e_chama_a_factory(tmp_path, monkeypatch):
 
     monkeypatch.setattr(servico, "criar_recomendador", criar_recomendador_falso)
 
-    assert servico.recomendar(usuario_id, caminho)[0].nome == "Max"
+    assert servico.recomendar(usuario_id, caminho)[0].nome == "Prime Video"
     assert capturado["tipo"] == "favoritos"
 
     contexto = capturado["contexto"]
     assert contexto.usuario_id == usuario_id
     assert [f.id for f in contexto.favoritos] == [3, 2, 1]  # mais recentes primeiro
     assert all(f.generos for f in contexto.catalogo)
-    assert contexto.disponibilidade[1] == ["Max", "Prime Video"]
+    assert contexto.disponibilidade[1] == ["Paramount+"]
+    assert contexto.disponibilidade[2] == ["Prime Video", "Max"]
 
 
 def test_planos_de_exemplo_sao_marcados_como_exemplo():
@@ -97,8 +149,8 @@ def test_formatar_pontuacao_com_virgula():
 
 
 # --- Tela (H3.5) ---
-# As funções abaixo rodam dentro do AppTest. Elas substituem os favoritos, o recomendador
-# e os planos por valores fixos, para a tela não depender do banco real.
+# As funções abaixo rodam dentro do AppTest. Elas substituem os favoritos, o
+# recomendador e os planos por valores fixos, para a tela não depender do banco.
 
 def _tela_sem_favoritos():
     import streamlit as st
@@ -117,8 +169,8 @@ def _tela_com_menos_de_tres_favoritos():
     from models.filme import Filme
 
     tela.listar_favoritos = lambda usuario_id: [
-        Filme(id=1, titulo="Matrix"),
-        Filme(id=2, titulo="Interestelar"),
+        Filme(id=1, titulo="The Godfather"),
+        Filme(id=2, titulo="The Dark Knight"),
     ]
     st.session_state["usuario_id"] = (1, "teste")
     tela.renderizar()
@@ -127,7 +179,6 @@ def _tela_com_menos_de_tres_favoritos():
 def _tela_com_favoritos():
     import streamlit as st
     from datetime import date
-    from pathlib import Path
 
     import ui.recomendacoes as tela
     from models.contexto_recomendacao import StreamingRecomendado
@@ -135,16 +186,16 @@ def _tela_com_favoritos():
     from models.plano import Plano
 
     tela.listar_favoritos = lambda usuario_id: [
-        Filme(id=1, titulo="Matrix"),
-        Filme(id=2, titulo="Interestelar"),
-        Filme(id=3, titulo="A Origem"),
+        Filme(id=1, titulo="The Godfather"),
+        Filme(id=2, titulo="The Dark Knight"),
+        Filme(id=3, titulo="The Dark Knight Rises"),
     ]
     tela.recomendar = lambda usuario_id: [
         StreamingRecomendado(
-            nome="Max",
+            nome="Prime Video",
             pontuacao=4.0,
-            filmes_compativeis=["A Origem", "Duna"],
-            generos_principais=["Ficção científica"],
+            filmes_compativeis=["The Dark Knight", "The Batman"],
+            generos_principais=["Crime"],
         )
     ]
     tela.planos_do_streaming = lambda nome: [
@@ -182,14 +233,14 @@ def test_tela_recomenda_e_mostra_planos_com_preco_e_data():
     app = AppTest.from_function(_tela_com_favoritos, default_timeout=15)
     app.run()
     assert not app.exception
-    assert "Max" not in _textos_html(app)  # nada é mostrado antes de clicar
+    assert "Prime Video" not in _textos_html(app)  # nada é mostrado antes de clicar
 
     app.button(key="recomendar").click().run()
     assert not app.exception
 
     html = _textos_html(app)
-    assert "Max" in html and "4,0" in html and "filmes do gênero" in html
-    assert "Gênero favorito: Ficção científica" in html
-    assert "Filmes desse gênero: A Origem, Duna" in html
+    assert "Prime Video" in html and "4,0" in html and "filmes do gênero" in html
+    assert "Gênero favorito: Crime" in html
+    assert "Filmes desse gênero: The Dark Knight, The Batman" in html
     assert "R$ 29,90" in html and "conferido em 10/11/2026" in html
     assert "data de conferência não informada" in html

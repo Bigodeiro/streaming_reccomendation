@@ -16,8 +16,12 @@ class CorpoFonte(Corpo):
         """Um filme pelo id, ou None se não existir."""
 
     @abstractmethod
+    def streamings_do_filme(self, filme_id: int) -> list[str]:
+        """Nomes canônicos dos streamings em que o filme está disponível."""
+
     def onde_assistir(self, filme_id: int) -> list[str]:
-        """Nomes dos streamings em que o filme está disponível."""
+        """Alias de `streamings_do_filme` usado pelas telas antigas."""
+        return self.streamings_do_filme(filme_id)
 
     def listar_filmes(self) -> list[Filme]:
         """Todos os filmes do catálogo (padrão: busca com termo vazio)."""

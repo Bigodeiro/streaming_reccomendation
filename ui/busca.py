@@ -16,7 +16,7 @@ from ui.identidade import cabecalho, rodape
 
 CHAVE_BUSCA = "termo_busca"
 # Os exemplos do placeholder existem no catálogo (DESIGN.md: não inventar catálogo).
-PLACEHOLDER = "Busque um filme, ex.: Matrix"
+PLACEHOLDER = "Busque um filme, ex.: The Dark Knight"
 
 PASSOS = [
     ("Busque", "Encontre os filmes que você já viu ou quer ver."),

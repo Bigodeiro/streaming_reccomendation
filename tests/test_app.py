@@ -18,15 +18,15 @@ def test_home_abre_com_busca_vazia_e_exemplos_no_placeholder():
     app = _abrir_app()
     busca = app.text_input(key="termo_busca")
     assert busca.value == ""
-    assert "Matrix" in busca.placeholder
+    assert "The Dark Knight" in busca.placeholder
 
 
 def test_busca_na_home_mostra_resultado_com_botao_de_favorito():
     app = _abrir_app()
-    app.text_input(key="termo_busca").input("matrix").run()
+    app.text_input(key="termo_busca").input("dark knight").run()
     assert not app.exception
     chaves = {b.key for b in app.button}
-    assert {"busca_favoritar_1", "busca_remover_fav_1"} & chaves
+    assert {"busca_favoritar_2", "busca_remover_fav_2"} & chaves
 
 
 def _tela_listas_sem_favoritos():

@@ -1,8 +1,10 @@
 __pycache__/
 *.pyc
 .venv/
-.env
+# .env
 .streamlit/secrets.toml
 *.db
 venv
 .agents
+.vscode
+scripts/progresso_construcao.json
