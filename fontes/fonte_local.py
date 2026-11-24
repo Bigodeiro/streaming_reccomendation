@@ -38,6 +38,9 @@ class FonteLocal(CorpoFonte):
         registro = self._achar(filme_id)
         return list(registro.get("streamings", [])) if registro else []
 
+    def listar_filmes(self) -> list[Filme]:
+        return [self._para_filme(registro) for registro in self._registros]
+
     def _achar(self, filme_id: int) -> dict | None:
         for registro in self._registros:
             if registro["id"] == filme_id:
