@@ -1,0 +1,20 @@
+# Um título por linha. O script busca cada um na Streaming Availability API.
+# Linhas começando com # e linhas vazias são ignoradas.
+The Godfather
+The Dark Knight
+The Dark Knight Rises
+Batman Begins
+Batman
+Batman Returns
+Batman Forever
+Batman & Robin
+Batman v Superman: Dawn of Justice
+The Batman
+Harry Potter and the Philosopher's Stone
+Harry Potter and the Chamber of Secrets
+Harry Potter and the Prisoner of Azkaban
+Harry Potter and the Goblet of Fire
+Harry Potter and the Order of the Phoenix
+Harry Potter and the Half-Blood Prince
+Harry Potter and the Deathly Hallows: Part 1
+Harry Potter and the Deathly Hallows: Part 2

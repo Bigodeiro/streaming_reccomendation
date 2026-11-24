@@ -6,3 +6,5 @@ __pycache__/
 *.db
 venv
 .agents
+.vscode
+scripts/progresso_construcao.json

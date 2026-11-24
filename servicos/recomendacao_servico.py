@@ -38,7 +38,7 @@ def recomendar(usuario_id: int, caminho: Path = CAMINHO_BANCO) -> list[Streaming
         usuario_id=usuario_id,
         favoritos=favoritos,
         catalogo=catalogo,
-        disponibilidade={filme.id: fonte.onde_assistir(filme.id) for filme in catalogo},
+        disponibilidade={filme.id: fonte.streamings_do_filme(filme.id) for filme in catalogo},
     )
     return criar_recomendador("favoritos").recomendar(contexto)
 

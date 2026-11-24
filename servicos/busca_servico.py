@@ -11,7 +11,12 @@ def buscar_filmes(titulo: str) -> list[Filme]:
     return fonte.buscar_por_titulo(titulo)
 
 
-def onde_assistir(filme_id: int) -> list[str]:
-    """Nomes dos streamings em que o filme está disponível."""
+def streamings_do_filme(filme_id: int) -> list[str]:
+    """Nomes canônicos dos streamings de assinatura em que o filme está disponível."""
     fonte = criar_fonte_de_filmes()
-    return fonte.onde_assistir(filme_id)
+    return fonte.streamings_do_filme(filme_id)
+
+
+def onde_assistir(filme_id: int) -> list[str]:
+    """Alias de `streamings_do_filme`."""
+    return streamings_do_filme(filme_id)

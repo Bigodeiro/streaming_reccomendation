@@ -27,7 +27,7 @@ def test_marcar_e_listar_favoritos(tmp_path):
     marcar_favorito(usuario_id, 3, caminho)
 
     titulos = [filme.titulo for filme in listar_favoritos(usuario_id, caminho)]
-    assert titulos == ["A Origem", "Matrix"]
+    assert titulos == ["The Dark Knight Rises", "The Godfather"]
 
 
 def test_marcar_favorito_duplicado_nao_repete(tmp_path):
@@ -64,4 +64,4 @@ def test_listar_favoritos_ignora_ids_fora_do_catalogo(tmp_path):
     marcar_favorito(usuario_id, 9999, caminho)
     marcar_favorito(usuario_id, 8, caminho)
 
-    assert [f.titulo for f in listar_favoritos(usuario_id, caminho)] == ["Toy Story"]
+    assert [f.titulo for f in listar_favoritos(usuario_id, caminho)] == ["Batman & Robin"]
