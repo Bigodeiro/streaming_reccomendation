@@ -4,3 +4,7 @@ __pycache__/
 .env
 .streamlit/secrets.toml
 *.db
+venv
+.agents
+.vscode
+scripts/progresso_construcao.json
