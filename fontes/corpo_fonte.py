@@ -18,3 +18,7 @@ class CorpoFonte(Corpo):
     @abstractmethod
     def onde_assistir(self, filme_id: int) -> list[str]:
         """Nomes dos streamings em que o filme está disponível."""
+
+    def listar_filmes(self) -> list[Filme]:
+        """Todos os filmes do catálogo (padrão: busca com termo vazio)."""
+        return self.buscar_por_titulo("")

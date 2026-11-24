@@ -1,15 +1,20 @@
-"""Módulo da estratégia de recomendação baseada em favoritos (H3.4).
+"""Estratégia simples de recomendação a partir dos favoritos.
 
-Implementa o algoritmo de filtragem baseada em conteúdo (Content-Based Filtering):
-1. Constrói o perfil de preferências a partir da frequência de gêneros dos filmes favoritados.
-2. Atribui uma nota de afinidade para cada filme do catálogo ainda não favoritado.
-3. Agrega as notas de afinidade dos filmes disponíveis em cada streaming.
-4. Gera um ranking ordenado com a pontuação e justificativa da recomendação.
+Regra da Sprint 2:
+1. O gênero favorito é o mais frequente entre os gêneros dos filmes favoritados.
+2. Para cada streaming, contamos quantos filmes desse gênero estão disponíveis.
+3. O ranking vai do serviço com mais filmes do gênero para o que tem menos.
+
+A recomendação só acontece com pelo menos MIN_FAVORITOS filmes favoritos.
 """
 
 from collections import Counter, defaultdict
 
-from models.contexto_recomendacao import ContextoRecomendacao, StreamingRecomendado
+from models.contexto_recomendacao import (
+    MIN_FAVORITOS,
+    ContextoRecomendacao,
+    StreamingRecomendado,
+)
 from models.filme import Filme
 from recomendacao.corpo_recomendacao import CorpoRecomendacao
 
@@ -18,70 +23,57 @@ class RecomendaPorFavoritos(CorpoRecomendacao):
     """Body concreto do padrão Bridge para recomendação baseada nos favoritos."""
 
     def recomendar(self, contexto: ContextoRecomendacao) -> list[StreamingRecomendado]:
-        if not contexto.favoritos or not contexto.catalogo:
+        if len(contexto.favoritos) < MIN_FAVORITOS or not contexto.catalogo:
             return []
 
-        # 1. Perfil de interesse do usuário: frequência de cada gênero nos favoritos
-        perfil_generos = self._calcular_perfil_generos(contexto.favoritos)
-        if not perfil_generos:
+        genero_favorito = self.genero_favorito(contexto.favoritos)
+        if genero_favorito is None:
             return []
 
-        ids_favoritos = {f.id for f in contexto.favoritos}
-
-        # 2. Avaliar afinidade de cada filme do catálogo que o usuário ainda não favoritou
-        afinidades_filmes: dict[int, tuple[float, Filme]] = {}
+        # Contagem de filmes do gênero por streaming. A ordem de inserção (a do
+        # catálogo) desempata serviços com a mesma quantidade de filmes.
+        quantidade_por_streaming: Counter[str] = Counter()
+        filmes_por_streaming: dict[str, list[str]] = defaultdict(list)
         for filme in contexto.catalogo:
-            if filme.id in ids_favoritos:
+            if not self._tem_genero(filme, genero_favorito):
                 continue
+            for streaming in contexto.disponibilidade.get(filme.id, []):
+                quantidade_por_streaming[streaming] += 1
+                filmes_por_streaming[streaming].append(filme.titulo)
 
-            pontos = sum(perfil_generos[g] for g in filme.generos if g in perfil_generos)
-            if pontos > 0:
-                afinidades_filmes[filme.id] = (pontos, filme)
-
-        # 3. Mapear pontuação e filmes compatíveis para cada serviço de streaming
-        pontuacao_streaming: dict[str, float] = defaultdict(float)
-        filmes_por_streaming: dict[str, list[tuple[float, str]]] = defaultdict(list)
-        generos_por_streaming: dict[str, Counter] = defaultdict(Counter)
-
-        for filme_id, (pontos, filme) in afinidades_filmes.items():
-            streamings = contexto.disponibilidade.get(filme_id, [])
-            for streaming in streamings:
-                pontuacao_streaming[streaming] += pontos
-                filmes_por_streaming[streaming].append((pontos, filme.titulo))
-                for g in filme.generos:
-                    if g in perfil_generos:
-                        generos_por_streaming[streaming][g] += perfil_generos[g]
-
-        # 4. Montar os objetos de resultado e ordenar pelo ranking de afinidade
-        resultados: list[StreamingRecomendado] = []
-        for streaming, pontuacao in pontuacao_streaming.items():
-            # Ordena filmes do streaming pelos de maior afinidade primeiro
-            filmes_ordenados = [
-                titulo for _, titulo in sorted(filmes_por_streaming[streaming], reverse=True)
-            ]
-            # Principais gêneros que contribuíram para a nota do streaming
-            principais_generos = [
-                g for g, _ in generos_por_streaming[streaming].most_common(3)
-            ]
-
-            resultados.append(
-                StreamingRecomendado(
-                    nome=streaming,
-                    pontuacao=round(pontuacao, 1),
-                    filmes_compativeis=filmes_ordenados,
-                    generos_principais=principais_generos,
-                )
+        return [
+            StreamingRecomendado(
+                nome=streaming,
+                pontuacao=float(quantidade),
+                filmes_compativeis=filmes_por_streaming[streaming],
+                generos_principais=[genero_favorito],
             )
-
-        # Ordenar do streaming mais recomendado para o menos recomendado
-        resultados.sort(key=lambda r: r.pontuacao, reverse=True)
-        return resultados
+            for streaming, quantidade in quantidade_por_streaming.most_common()
+        ]
 
     @staticmethod
-    def _calcular_perfil_generos(favoritos: list[Filme]) -> Counter:
-        """Gera um mapa de frequência de gêneros a partir dos favoritos."""
-        contagem = Counter()
+    def genero_favorito(favoritos: list[Filme]) -> str | None:
+        """Gênero mais frequente nos favoritos, ou None se não houver gêneros.
+
+        A comparação ignora caixa e espaços, mas o nome devolvido é o que veio
+        dos filmes. Em empate, vale o primeiro gênero encontrado.
+        """
+        contagem: Counter[str] = Counter()
+        nomes: dict[str, str] = {}
         for filme in favoritos:
             for genero in filme.generos:
-                contagem[genero] += 1
-        return contagem
+                chave = genero.strip().casefold()
+                if not chave:
+                    continue
+                nomes.setdefault(chave, genero.strip())
+                contagem[chave] += 1
+
+        if not contagem:
+            return None
+        chave, _ = contagem.most_common(1)[0]
+        return nomes[chave]
+
+    @staticmethod
+    def _tem_genero(filme: Filme, genero: str) -> bool:
+        alvo = genero.strip().casefold()
+        return any(g.strip().casefold() == alvo for g in filme.generos)

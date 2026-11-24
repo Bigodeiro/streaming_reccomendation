@@ -1,19 +1,18 @@
-"""Tela de recomendações com planos e preços (H3.5 / H7, DESIGN.md 4.7, 4.8 e 5.4).
+"""Tela de recomendações (H3.5 / H7, DESIGN.md 4.7, 4.8 e 5.4).
 
-A tela só exibe o ranking que a lógica da H3.4 devolve (lista de StreamingRecomendado
-já ordenada) e os planos de cada streaming. Não recalcula nada.
+A tela só exibe o ranking devolvido pelo serviço de recomendação (já ordenado
+pela quantidade de filmes do gênero favorito) e os planos de cada streaming.
+Não recalcula nada.
 """
 
 from html import escape
 
 import streamlit as st
 
-from models.contexto_recomendacao import StreamingRecomendado
+from models.contexto_recomendacao import MIN_FAVORITOS, StreamingRecomendado
 from models.plano import Plano
 from servicos.favoritos_servico import listar_favoritos
-
-# TODO (integração H3.3/H3.1): trocar pela versão definitiva e pôr PLANOS_DE_EXEMPLO = False.
-from servicos.recomendacao_provisoria import planos_do_streaming, recomendar
+from servicos.recomendacao_servico import planos_do_streaming, recomendar
 from ui.componentes import botao_buscar_filmes, formatar_pontuacao, formatar_preco
 from ui.identidade import cabecalho, estado_vazio, rodape, titulo_pagina
 
@@ -29,21 +28,14 @@ def renderizar() -> None:
     usuario_id = st.session_state["usuario_id"][0]
     favoritos = listar_favoritos(usuario_id)
 
-    if not favoritos:
-        st.session_state.pop(CHAVE_RESULTADO, None)
-        with st.container(border=True):
-            estado_vazio(
-                "movie",
-                "Nenhum favorito ainda",
-                "Adicione alguns favoritos para descobrir quais serviços combinam com você.",
-            )
-            botao_buscar_filmes("recomendacoes_buscar_filmes")
+    if len(favoritos) < MIN_FAVORITOS:
+        _estado_favoritos_insuficientes(len(favoritos))
         rodape()
         return
 
     if PLANOS_DE_EXEMPLO:
         st.warning(
-            "Os planos e preços abaixo são fictícios. Os valores reais chegam com a H3.1.",
+            "Os planos e preços abaixo são fictícios. Os valores reais chegam com a H7.",
             icon=":material/construction:",
         )
 
@@ -71,25 +63,40 @@ def renderizar() -> None:
     if salvo:
         _mostrar_ranking(salvo[1])
     else:
-        quantidade = len(favoritos)
-        sufixo = "s" if quantidade > 1 else ""
-        st.caption(f"A recomendação usa seus {quantidade} filme{sufixo} favorito{sufixo}.")
+        st.caption(
+            f"Você já tem {len(favoritos)} favoritos. A recomendação usa o gênero mais "
+            "frequente entre eles para ordenar os serviços."
+        )
 
     rodape()
+
+
+def _estado_favoritos_insuficientes(quantidade: int) -> None:
+    """Estado vazio (4.5) quando o mínimo de favoritos ainda não foi atingido."""
+    st.session_state.pop(CHAVE_RESULTADO, None)
+    faltam = MIN_FAVORITOS - quantidade
+    titulo = "Nenhum favorito ainda" if quantidade == 0 else "Faltam favoritos"
+    texto = (
+        f"A recomendação começa com {MIN_FAVORITOS} filmes favoritos. "
+        f"Adicione mais {faltam} para liberar os serviços recomendados."
+    )
+    with st.container(border=True):
+        estado_vazio("favorite", titulo, texto)
+        botao_buscar_filmes("recomendacoes_buscar_filmes")
 
 
 def _mostrar_ranking(recomendados: list[StreamingRecomendado]) -> None:
     if not recomendados:
         st.info(
-            "Não encontramos filmes parecidos com seus favoritos nos serviços cadastrados. "
+            "Não encontramos filmes do seu gênero favorito nos serviços cadastrados. "
             "Favorite filmes de outros gêneros e tente de novo.",
             icon=":material/search_off:",
         )
         return
 
     st.html(
-        '<p class="qs-results-caption">Ordenados pela pontuação de afinidade: cada filme que você '
-        "ainda não favoritou soma pontos quando tem gêneros dos seus favoritos.</p>"
+        '<p class="qs-results-caption">Serviços ordenados pela quantidade de filmes do seu '
+        "gênero favorito. Quem tem mais títulos desse gênero vem primeiro.</p>"
     )
     for posicao, item in enumerate(recomendados, 1):
         with st.container(border=True, key=f"qs-card-rank-{posicao}"):
@@ -97,24 +104,25 @@ def _mostrar_ranking(recomendados: list[StreamingRecomendado]) -> None:
 
 
 def _html_item(posicao: int, item: StreamingRecomendado, planos: list[Plano]) -> str:
+    rotulo_quantidade = "filme do gênero" if item.pontuacao == 1 else "filmes do gênero"
     partes = [
         '<div class="qs-rank"><div class="qs-rank-head">',
         f'<span class="qs-rank-pos" aria-label="Posição {posicao}">{posicao}º</span>',
         f'<span class="qs-rank-nome">{escape(item.nome)}</span>',
         f'<span class="qs-afinidade"><strong>{formatar_pontuacao(item.pontuacao)}</strong>'
-        "<span>pontos de afinidade</span></span>",
+        f"<span>{rotulo_quantidade}</span></span>",
         "</div>",
     ]
 
     if item.generos_principais:
         generos = ", ".join(escape(g) for g in item.generos_principais)
-        partes.append(f'<p class="qs-rank-favs">Combina com: {generos}</p>')
+        partes.append(f'<p class="qs-rank-favs">Gênero favorito: {generos}</p>')
 
     if item.filmes_compativeis:
-        sugeridos = [escape(t) for t in item.filmes_compativeis[:MAX_FILMES_SUGERIDOS]]
-        restantes = len(item.filmes_compativeis) - len(sugeridos)
+        titulos = [escape(t) for t in item.filmes_compativeis[:MAX_FILMES_SUGERIDOS]]
+        restantes = len(item.filmes_compativeis) - len(titulos)
         extra = f" e mais {restantes}" if restantes > 0 else ""
-        partes.append(f'<p class="qs-rank-favs">Você pode gostar: {", ".join(sugeridos)}{extra}</p>')
+        partes.append(f'<p class="qs-rank-favs">Filmes desse gênero: {", ".join(titulos)}{extra}</p>')
 
     partes.append('<div class="qs-rotulo">Planos</div>')
     partes.append(_html_planos(planos))

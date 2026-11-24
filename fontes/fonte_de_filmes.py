@@ -13,3 +13,7 @@ class FonteDeFilmes(Handle):
 
     def onde_assistir(self, filme_id: int) -> list[str]:
         return self._corpo.onde_assistir(filme_id)
+
+    def listar_filmes(self) -> list[Filme]:
+        """Catálogo completo, sem depender de um termo de busca."""
+        return self._corpo.listar_filmes()
