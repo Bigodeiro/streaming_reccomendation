@@ -21,6 +21,30 @@ O sistema é uma página web em que o usuário:
 3. Recebe recomendações de streaming com base nesses dois grupos de filmes.
 4. Consulta, para cada streaming recomendado, os planos e preços disponíveis.
 
+### Como a recomendação funciona
+
+A recomendação é **baseada em conteúdo** e serve como **apoio à decisão**: ela não promete que o usuário vai gostar de um serviço, apenas mostra onde há mais títulos parecidos com os que ele já escolheu e quanto custa assinar.
+
+Na versão atual, com base nos favoritos, o sistema:
+
+1. Exige pelo menos 3 filmes favoritos.
+2. Descobre o gênero que mais se repete entre eles.
+3. Conta, em cada streaming, quantos filmes desse gênero estão disponíveis.
+4. Monta um ranking, do serviço com mais filmes para o com menos, e mostra os planos e preços de cada um.
+
+Não usamos filtragem colaborativa (comparar usuários entre si), porque o projeto não tem uma base de usuários e avaliações para isso. Os detalhes estão em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md).
+
+### Estado atual
+
+O projeto é desenvolvido em sprints de duas semanas (planejamento em [`docs/sprints.md`](docs/sprints.md)).
+
+- **Sprint 1:** busca de filmes por título, favoritos e lista de favoritos.
+- **Sprint 2 (em andamento):** recomendação com base nos favoritos e planos e preços dos streamings.
+- **Sprint 3:** cadastro e login, watchlist e recomendação com base nela.
+- **Sprint 4:** testes, correções e apresentação.
+
+Enquanto a autenticação não chega, o sistema usa um perfil de demonstração.
+
 ### Funcionalidades (histórias de usuário)
 
 | Código | Funcionalidade | Prioridade |
@@ -45,72 +69,39 @@ O sistema é uma página web em que o usuário:
 | Camada | Tecnologia |
 |--------|------------|
 | Front-end | Streamlit |
-| Back-end | Python (lógica de negócio e acesso a dados) |
+| Back-end | Python (lógica de negócio e acesso a dados), com os padrões Handle/Body e Factory |
 | Banco de dados | SQLite3 |
-| Fonte de dados dos filmes/streamings | Streaming Availability API v4 (`scripts/atualizar_catalogo.py`) |
+| Fonte de dados dos filmes | Catálogo local em JSON (`fontes/filmes_local.json`), gerado a partir da Streaming Availability API |
+| Fonte de dados dos planos e preços | Dados fixos cadastrados no banco, conferidos nos sites oficiais de cada streaming |
+| Testes | pytest |
 | Execução | Local inicialmente |
 
-## Catálogo de filmes e streamings
+### Fonte de dados
 
-O catálogo usado pela aplicação fica em `fontes/filmes_local.json`. Cada filme traz `titulo`, `ano`, `generos`, `streamings` (somente serviços de assinatura disponíveis no Brasil) e os ids `imdb_id`/`tmdb_id` usados para casar registros entre atualizações:
+Os filmes, com seus gêneros e os streamings em que estão disponíveis no Brasil, vêm de um **catálogo local em JSON**. Ele é gerado pelo script `scripts/atualizar_catalogo.py`, que consulta a Streaming Availability API. Assim, o app abre rápido e funciona sem internet e sem chave de API.
 
-```json
-{
-  "atualizado_em": "2026-11-24",
-  "fonte": "Streaming Availability API v4",
-  "pais": "br",
-  "filmes": [
-    {
-      "id": 1,
-      "titulo": "The Godfather",
-      "ano": 1972,
-      "generos": ["Crime", "Drama"],
-      "streamings": ["Paramount+"],
-      "imdb_id": "tt0068646",
-      "tmdb_id": "movie/238"
-    }
-  ]
-}
-```
+Os **planos e preços** são dados fixos, carregados no banco ao iniciar o app. Cada preço guarda a data em que foi conferido no site do streaming, porque esses valores mudam com frequência. Os preços considerados são os mensais, sem promoções.
 
-A fonte expõe os gêneros em `Filme.generos` e a disponibilidade em `streamings_do_filme(id)` (`onde_assistir` ficou como alias). Os nomes dos streamings passam pelo mapa em `fontes/streamings.py`, que usa os ids da API (`netflix`, `prime`, `hbo`, `disney`, `apple`, `paramount`, ...). Esse mesmo mapa deve ser usado como `slug` na tabela `streamings` da H3.1; serviços fora dele, como Globoplay, são descartados na importação.
-
-### API escolhida
-
-Usamos a [Streaming Availability API](https://docs.movieofthenight.com/) (Movie of the Night) porque é a única opção consultada que entrega, em uma chamada, gêneros, ano, ids externos e **onde assistir no Brasil**, com 1.000 requisições gratuitas por mês, uso comercial permitido e cache local permitido. JustWatch não oferece API self-service; TMDB e OMDb não trazem disponibilidade. A API não localiza em português, então títulos e gêneros do catálogo ficam em inglês.
-
-### Atualizando o catálogo
-
-1. Obtenha uma chave gratuita em [developers.movieofthenight.com](https://developers.movieofthenight.com/).
-2. Defina `STREAMING_AVAILABILITY_API_KEY` no ambiente (ou em `.env`, que já é ignorado pelo Git).
-3. Edite `scripts/titulos_para_buscar.txt` com os filmes desejados (um por linha).
-4. Rode:
+## Como rodar
 
 ```bash
-python -m scripts.atualizar_catalogo --dry-run   # confere o JSON sem gravar
-python -m scripts.atualizar_catalogo             # grava fontes/filmes_local.json
+python -m venv .venv
+source .venv/bin/activate          # no Windows (PowerShell): .venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+streamlit run app.py
 ```
 
-O script consulta `/shows/search/title` com `country=br` e `show_type=movie`, aproveita apenas opções `subscription`, normaliza os serviços pelo mapa canônico e grava o arquivo por completo de forma atômica. Não é preciso rodá-lo para usar ou testar o app: a suíte de testes usa payloads mockados e não faz chamadas de rede.
-
-### Varredura geral e retomada da base
-
-Para popular a base aos poucos, **sem escrever uma lista de filmes**, use:
+Para rodar os testes:
 
 ```bash
-python -m scripts.construcao_inicial --status           # mostra o progresso
-python -m scripts.construcao_inicial                    # varre até acabar a cota
-python -m scripts.construcao_inicial --max-paginas 5    # limita páginas nesta execução
-python -m scripts.construcao_inicial --max-novos 20     # limita filmes novos
-python -m scripts.construcao_inicial --todos-catalogos  # inclui aluguel/compra/outros
-python -m scripts.construcao_inicial --reiniciar-progresso
+python -m pytest -q
 ```
 
-Ele consulta `/shows/search/filters?country=br&show_type=movie`, que devolve o catálogo inteiro em páginas de 20 filmes — não precisa de `scripts/titulos_para_buscar.txt`. Por padrão a varredura usa `netflix.subscription,prime.subscription,hbo.subscription,disney.subscription,apple.subscription,paramount.subscription,crunchyroll.subscription,mubi.subscription` (derive de `fontes/streamings.py`), evitando filmes que só estão em aluguel/compra ou em serviços fora do mapa canônico. Use `--catalogos` para trocar essa lista ou `--todos-catalogos` para varrer tudo o que a API oferece no país.
+## Documentação
 
-O cursor da paginação fica em `scripts/progresso_construcao.json` (ignorado pelo Git). Quando a API responder que a cota/tokens acabaram (HTTP 429, 402 ou mensagem de quota/limite), ele salva o cursor atual e encerra sem erro; na próxima execução continua exatamente da página seguinte. Se o processo cair por outro motivo, o que já foi adicionado também continua salvo.
-
-Filmes com o mesmo `imdb_id`, `tmdb_id` ou `título + ano` são ignorados, inclusive quando aparecem de novo em uma página retomada. Assim rodar o script várias vezes não cria mídias repetidas nem muda os ids dos favoritos. `--dry-run` consulta a API e mostra o resumo sem gravar nada.
+- [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md): estrutura do código, padrões de projeto e critério de recomendação
+- [`docs/sprints.md`](docs/sprints.md): planejamento das sprints
+- [`docs/DESIGN.md`](docs/DESIGN.md): documento de design da interface
 
 ## Equipe
 
